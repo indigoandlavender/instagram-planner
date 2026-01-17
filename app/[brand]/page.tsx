@@ -1,7 +1,5 @@
 'use client'
 
-import { useSession } from 'next-auth/react'
-import { redirect } from 'next/navigation'
 import { useState, useEffect, useCallback } from 'react'
 import { CalendarGrid } from '@/components/calendar/CalendarGrid'
 import { ListView } from '@/components/views/ListView'
@@ -28,7 +26,6 @@ interface BrandPageProps {
 }
 
 export default function BrandPage({ params }: BrandPageProps) {
-  const { data: session, status } = useSession()
   const isMobile = useIsMobile()
   const [posts, setPosts] = useState<Post[]>([])
   const [loading, setLoading] = useState(true)
@@ -68,23 +65,9 @@ export default function BrandPage({ params }: BrandPageProps) {
   }, [params.brand])
 
   useEffect(() => {
-    if (status === 'authenticated') {
-      fetchPosts()
-      fetchBrand()
-    }
-  }, [status, fetchPosts, fetchBrand])
-
-  if (status === 'loading') {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand"></div>
-      </div>
-    )
-  }
-
-  if (status === 'unauthenticated') {
-    redirect('/auth/signin')
-  }
+    fetchPosts()
+    fetchBrand()
+  }, [fetchPosts, fetchBrand])
 
   const filteredPosts = posts.filter(post => {
     if (filters.category && post.category !== filters.category) return false

@@ -1,16 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { getPosts, createPost } from '@/lib/google-sheets'
 import { getBrandBySlug } from '@/lib/brands'
 
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const brandSlug = request.nextUrl.searchParams.get('brand')
   if (!brandSlug) {
     return NextResponse.json({ error: 'Brand slug required' }, { status: 400 })
@@ -22,7 +14,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const posts = await getPosts(session.accessToken, brand.sheetId)
+    const posts = await getPosts(brand.sheetId)
     return NextResponse.json(posts)
   } catch (error) {
     console.error('Error fetching posts:', error)
@@ -31,12 +23,6 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions)
-
-  if (!session?.accessToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
   const brandSlug = request.nextUrl.searchParams.get('brand')
   if (!brandSlug) {
     return NextResponse.json({ error: 'Brand slug required' }, { status: 400 })
@@ -49,7 +35,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const data = await request.json()
-    const post = await createPost(session.accessToken, brand.sheetId, data)
+    const post = await createPost(brand.sheetId, data)
     return NextResponse.json(post)
   } catch (error) {
     console.error('Error creating post:', error)

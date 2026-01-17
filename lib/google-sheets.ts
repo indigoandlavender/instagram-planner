@@ -5,14 +5,24 @@ import { generateId } from './utils'
 const SHEET_RANGE = 'Sheet1!A:H'
 const HEADERS = ['ID', 'Date', 'Time', 'Category', 'Caption', 'Image_URL', 'Status', 'Posted_At']
 
-function getSheets(accessToken: string) {
-  const auth = new google.auth.OAuth2()
-  auth.setCredentials({ access_token: accessToken })
+// Service account authentication
+function getAuth() {
+  return new google.auth.GoogleAuth({
+    credentials: {
+      client_email: process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
+      private_key: process.env.GOOGLE_PRIVATE_KEY?.replace(/\\n/g, '\n'),
+    },
+    scopes: ['https://www.googleapis.com/auth/spreadsheets'],
+  })
+}
+
+function getSheets() {
+  const auth = getAuth()
   return google.sheets({ version: 'v4', auth })
 }
 
-export async function getPosts(accessToken: string, sheetId: string): Promise<Post[]> {
-  const sheets = getSheets(accessToken)
+export async function getPosts(sheetId: string): Promise<Post[]> {
+  const sheets = getSheets()
 
   try {
     const response = await sheets.spreadsheets.values.get({
@@ -42,11 +52,10 @@ export async function getPosts(accessToken: string, sheetId: string): Promise<Po
 }
 
 export async function createPost(
-  accessToken: string,
   sheetId: string,
   data: PostFormData
 ): Promise<Post> {
-  const sheets = getSheets(accessToken)
+  const sheets = getSheets()
   const id = generateId()
 
   const newPost: Post = {
@@ -67,7 +76,7 @@ export async function createPost(
   ]
 
   // First, ensure headers exist
-  await ensureHeaders(accessToken, sheetId)
+  await ensureHeaders(sheetId)
 
   await sheets.spreadsheets.values.append({
     spreadsheetId: sheetId,
@@ -82,12 +91,11 @@ export async function createPost(
 }
 
 export async function updatePost(
-  accessToken: string,
   sheetId: string,
   postId: string,
   data: Partial<PostFormData>
 ): Promise<Post | null> {
-  const sheets = getSheets(accessToken)
+  const sheets = getSheets()
 
   // Get all posts to find the row index
   const response = await sheets.spreadsheets.values.get({
@@ -136,11 +144,10 @@ export async function updatePost(
 }
 
 export async function deletePost(
-  accessToken: string,
   sheetId: string,
   postId: string
 ): Promise<boolean> {
-  const sheets = getSheets(accessToken)
+  const sheets = getSheets()
 
   // Get all posts to find the row index
   const response = await sheets.spreadsheets.values.get({
@@ -183,8 +190,8 @@ export async function deletePost(
   return true
 }
 
-async function ensureHeaders(accessToken: string, sheetId: string): Promise<void> {
-  const sheets = getSheets(accessToken)
+async function ensureHeaders(sheetId: string): Promise<void> {
+  const sheets = getSheets()
 
   const response = await sheets.spreadsheets.values.get({
     spreadsheetId: sheetId,
